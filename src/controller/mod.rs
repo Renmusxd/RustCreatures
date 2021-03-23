@@ -18,7 +18,7 @@ impl Controller {
             world: w,
             view: v,
             draw_hertz: 60,
-            hertz: 600,
+            hertz: 6000,
         }
     }
 

@@ -121,38 +121,45 @@ impl View {
 
                 let (canvas_x, canvas_y) = self.map_to_screen(x, y);
 
-                let fam = c.get_fam();
-                let ent = fam_color_hash.entry(fam);
-                let (r, g, b) = *ent.or_insert_with(|| {
-                    let mut s = DefaultHasher::new();
-                    fam.hash(&mut s);
-                    let hashed_fam = s.finish();
-                    let r = hashed_fam & (255);
-                    let g = (hashed_fam & (255 << 8)) >> 8;
-                    let b = (hashed_fam & (255 << 16)) >> 16;
-                    (r as u8, g as u8, b as u8)
-                });
+                let rad = (self.scaling / 2.) as i32;
+                let is_on_screen =
+                    self.canvas_on_screen(canvas_x - rad, canvas_y - rad, 2 * rad, 2 * rad);
 
-                let col = Color::RGB(r as u8, g as u8, b as u8);
-                let rad = (self.scaling / 2.) as i16;
-                self.canvas
-                    .filled_circle(canvas_x as i16, canvas_y as i16, rad, col)?;
+                if is_on_screen {
+                    let fam = c.get_fam();
+                    let ent = fam_color_hash.entry(fam);
+                    let (r, g, b) = *ent.or_insert_with(|| {
+                        let mut s = DefaultHasher::new();
+                        fam.hash(&mut s);
+                        let hashed_fam = s.finish();
+                        let r = hashed_fam & (255);
+                        let g = (hashed_fam & (255 << 8)) >> 8;
+                        let b = (hashed_fam & (255 << 16)) >> 16;
+                        (r as u8, g as u8, b as u8)
+                    });
 
-                let veg_eff = c.get_veg_eff();
-                let g = 255. * veg_eff;
-                let r = 255. * (1. - veg_eff);
-                let diet_col = Color::RGB(r.round() as u8, g.round() as u8, 0);
-                let rad = (scaling / 3.) as i16;
-                self.canvas
-                    .filled_circle(canvas_x as i16, canvas_y as i16, rad, diet_col)?;
+                    let col = Color::RGB(r as u8, g as u8, b as u8);
+                    let rad = rad as i16;
 
-                let (theta_s, theta_c) = theta.sin_cos();
+                    self.canvas
+                        .filled_circle(canvas_x as i16, canvas_y as i16, rad, col)?;
 
-                let (canvas_x_for, canvas_y_for) = self.map_to_screen(x + theta_c, y + theta_s);
-                let start = Point::new(canvas_x, canvas_y);
-                let end = Point::new(canvas_x_for, canvas_y_for);
-                self.canvas.set_draw_color(col);
-                self.canvas.draw_line(start, end)?;
+                    let veg_eff = c.get_veg_eff();
+                    let g = 255. * veg_eff;
+                    let r = 255. * (1. - veg_eff);
+                    let diet_col = Color::RGB(r.round() as u8, g.round() as u8, 0);
+                    let rad = (scaling / 3.) as i16;
+                    self.canvas
+                        .filled_circle(canvas_x as i16, canvas_y as i16, rad, diet_col)?;
+
+                    let (theta_s, theta_c) = theta.sin_cos();
+
+                    let (canvas_x_for, canvas_y_for) = self.map_to_screen(x + theta_c, y + theta_s);
+                    let start = Point::new(canvas_x, canvas_y);
+                    let end = Point::new(canvas_x_for, canvas_y_for);
+                    self.canvas.set_draw_color(col);
+                    self.canvas.draw_line(start, end)?;
+                }
 
                 if self.draw_vision {
                     if let Some(o) = c.get_last_observation() {
