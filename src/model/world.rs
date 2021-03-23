@@ -212,9 +212,10 @@ impl World {
                                             + 2. * std::f64::consts::TAU)
                                             % std::f64::consts::TAU;
                                         if dtheta < Observation::VISION_RANGE {
-                                            let removed = cs[t].remove_energy(BITE_DAMAGE);
-
                                             let meat_eff = 1. - cs[ic].get_veg_eff();
+                                            let dam =
+                                                (meat_eff * BITE_DAMAGE as f64).round() as u32;
+                                            let removed = cs[t].remove_energy(dam);
                                             let digested =
                                                 (removed as f64 * meat_eff).round() as u32;
                                             cs[ic].add_energy(digested);
