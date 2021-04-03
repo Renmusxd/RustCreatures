@@ -5,7 +5,7 @@ use num_traits::FromPrimitive;
 
 use crate::model::brain::*;
 use ndarray_rand::rand;
-use rand_distr::{Distribution, Normal, NormalError};
+use rand_distr::{Distribution, Normal};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -93,7 +93,7 @@ impl Action {
 }
 
 const TOTAL_ACTIONS: usize =
-    { TurningAction::NUM_ACTIONS + MovementAction::NUM_ACTIONS + Action::NUM_ACTIONS };
+    TurningAction::NUM_ACTIONS + MovementAction::NUM_ACTIONS + Action::NUM_ACTIONS;
 
 pub struct Creature {
     id: usize,
@@ -106,11 +106,17 @@ pub struct Creature {
     energy: u32,
     // Vegetable efficiency
     veg_eff: f64,
-    brain: NeuralBrain<{ Observation::NUM_INPUTS }, { TOTAL_ACTIONS }>,
     age: u32,
+    // For brain stuff
+    brain: NeuralBrain<{ Creature::NUM_BRAIN_INPUTS }, { Creature::NUM_BRAIN_OUTPUTS }>,
+    input_buff: [f64; Creature::NUM_BRAIN_INPUTS],
+    mem: [f64; Creature::MEM_SIZE],
 }
 
 impl Creature {
+    pub const NUM_BRAIN_INPUTS: usize = { Observation::NUM_INPUTS + Creature::MEM_SIZE };
+    pub const NUM_BRAIN_OUTPUTS: usize = { TOTAL_ACTIONS + Creature::MEM_SIZE };
+    pub const MEM_SIZE: usize = 3;
     pub const STARTING_ENERGY: u32 = 4096;
     pub const MUT_RATE: f64 = 0.05;
 
@@ -131,7 +137,9 @@ impl Creature {
             energy: Self::STARTING_ENERGY,
             veg_eff: veg,
             brain: NeuralBrain::default(),
+            input_buff: [0.0; Creature::NUM_BRAIN_INPUTS],
             age: 0,
+            mem: [0.0; Creature::MEM_SIZE],
         }
     }
 
@@ -157,8 +165,10 @@ impl Creature {
             last_obs: None,
             energy: Self::STARTING_ENERGY,
             veg_eff: new_veg_eff,
-            brain: newbrain,
             age: 0,
+            brain: newbrain,
+            input_buff: [0.0; Creature::NUM_BRAIN_INPUTS],
+            mem: [0.0; Creature::MEM_SIZE],
         }
     }
 
@@ -210,21 +220,33 @@ impl Creature {
         o: Observation,
     ) -> (TurningAction, MovementAction, Action) {
         // Get all inputs starting at 0 (up to 1 for most, above for others like energy).
-        let inputs = o.inputs();
-        let mut actions = [0.; TOTAL_ACTIONS];
+        self.input_buff
+            .iter_mut()
+            .zip(o.inputs().iter().cloned().chain(self.mem.iter().cloned()))
+            .for_each(|(b, v)| *b = v);
 
-        self.brain.feed(&inputs, &mut actions);
+        let mut outputs = [0.; Creature::NUM_BRAIN_OUTPUTS];
+
+        self.brain.feed(&self.input_buff, &mut outputs);
+        let actions = &outputs[0..TOTAL_ACTIONS];
 
         let i = TurningAction::NUM_ACTIONS;
-        let (turning_index, _) = max_index(std::f64::MIN, actions[0..i].iter().cloned());
+        let (turning_index, _) = max_index(f64::MIN, actions[0..i].iter().cloned());
         let j = TurningAction::NUM_ACTIONS + MovementAction::NUM_ACTIONS;
-        let (moving_index, _) = max_index(std::f64::MIN, actions[i..j].iter().cloned());
+        let (moving_index, _) = max_index(f64::MIN, actions[i..j].iter().cloned());
         let k = TOTAL_ACTIONS;
-        let (action_index, _) = max_index(std::f64::MIN, actions[j..k].iter().cloned());
+        let (action_index, _) = max_index(f64::MIN, actions[j..k].iter().cloned());
 
         let turn_action = TurningAction::from_usize(turning_index).unwrap();
         let move_action = MovementAction::from_usize(moving_index).unwrap();
         let action = Action::from_usize(action_index).unwrap();
+
+        // Set mem
+        let newmem = &outputs[TOTAL_ACTIONS..];
+        self.mem
+            .iter_mut()
+            .zip(newmem.iter())
+            .for_each(|(b, v)| *b = v.tanh());
 
         self.last_obs = Some(o);
         (turn_action, move_action, action)

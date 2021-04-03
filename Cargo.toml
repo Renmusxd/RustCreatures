@@ -8,18 +8,11 @@ edition = "2018"
 
 [dependencies]
 rayon = "^1.5"
-ndarray-rand = "^0.13"
+ndarray-rand = "^0.14"
 num-derive = "^0.3"
 num-traits = "^0.2"
 rand_distr = "^0.4"
-# This is particular, don't mess with.
-blas-src = { version = "0.6.1", default-features = false, features = ["openblas"] }
-openblas-src = { version = "0.9.0", default-features = false, features = ["cblas", "system"] }
-
-[dependencies.sdl2]
-version = "^0.34"
-features = ['gfx']
-
-[dependencies.ndarray]
-version = "^0.14"
-features = ["blas"]
+sdl2 = { version = "^0.34", features = ['gfx'] }
+ndarray = { version = "0.15.0", features = ["blas", "matrixmultiply-threading"] }
+blas-src = { version = "0.7.0", default-features = false, features = ["openblas"] }
+openblas-src = { version = "0.9", default-features = false, features = ["cblas", "system"] }

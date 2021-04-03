@@ -1,4 +1,4 @@
-use ndarray::{arr1, Array, Array2, Dim};
+use ndarray::{arr1, Array, Dim};
 use ndarray_rand::rand_distr::Normal;
 use ndarray_rand::RandomExt;
 use std::cmp::max;

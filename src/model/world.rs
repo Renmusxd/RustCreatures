@@ -261,8 +261,6 @@ impl World {
     pub fn observe(&self, c: &Creature, cs: &[Creature], grid: &GridLookup<usize>) -> Observation {
         const MAX_D2: f64 = Observation::MAX_DIST * Observation::MAX_DIST;
         const VISION_RANGE_2: f64 = Observation::VISION_RANGE / 2.;
-        let world_x = self.grass_tile_x as f64;
-        let world_y = self.grass_tile_y as f64;
 
         let (x, y, theta) = c.get_pos();
         let mut observation = Observation::new_empty();
@@ -281,7 +279,7 @@ impl World {
                             % std::f64::consts::TAU;
 
                         if dtheta < Observation::VISION_RANGE {
-                            let d_from_left = (dtheta / Observation::VISION_RANGE);
+                            let d_from_left = dtheta / Observation::VISION_RANGE;
                             let soft_bin = Observation::NUM_SITES as f64 * d_from_left;
                             let bin = soft_bin.floor() as usize;
 
@@ -300,9 +298,8 @@ impl World {
             .dists
             .iter_mut()
             .zip(observation.colors.iter_mut())
-            .enumerate()
-            .filter(|(_, (d, _))| d.is_infinite())
-            .for_each(|(i, (d, c))| {
+            .filter(|(d, _)| d.is_infinite())
+            .for_each(|(d, c)| {
                 *d = MAX_D2;
                 *c = 0.0;
             });

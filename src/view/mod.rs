@@ -1,5 +1,5 @@
 use crate::model::{Observation, World};
-use sdl2::event::{Event, EventPollIterator};
+use sdl2::event::EventPollIterator;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
@@ -90,7 +90,7 @@ impl View {
             .enumerate()
             .try_for_each(|(i, v)| -> Result<(), String> {
                 let (x, y) = w.get_grass_loc(i);
-                let rg = (*v as f64 / grass_max);
+                let rg = *v as f64 / grass_max;
                 let r = ((1. - rg) * 148.) as u8;
 
                 // Only draw squares in bounds.
